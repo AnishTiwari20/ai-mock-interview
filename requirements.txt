@@ -4,3 +4,4 @@ whitenoise
 google-genai
 PyPDF2
 psycopg2-binary
+reportlab

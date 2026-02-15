@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interview</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .interview-card {
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            max-width: 800px;
+            width: 100%;
+            border: none;
+        }
+
+        .question-box {
+            background: #f8f9fc;
+            padding: 25px;
+            border-radius: 18px;
+            border-left: 5px solid #5a5cff;
+        }
+
+        textarea {
+            border-radius: 15px;
+            padding: 12px;
+            font-size: 15px;
+            resize: none;
+        }
+
+        textarea:focus {
+            box-shadow: 0 0 0 3px rgba(90, 92, 255, 0.2);
+            border-color: #5a5cff;
+        }
+
+        .status-box {
+            background: #f1f3f5;
+            padding: 12px 18px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-custom {
+            border-radius: 12px;
+            font-weight: 500;
+            padding: 10px 18px;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+        }
+
+        h3 {
+            font-weight: 700;
+        }
+
+        .divider {
+            opacity: 0.1;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container my-5">
+    <div class="card shadow-lg p-5 interview-card">
+
+        <h3 class="text-primary mb-4">🤖 AI Interview Question</h3>
+
+        <div class="question-box mb-4">
+            <p class="lead mb-0">{{ question }}</p>
+        </div>
+
+        {% if success %}
+            <div class="alert alert-success shadow-sm">
+                ✅ Answer submitted successfully!
+            </div>
+        {% endif %}
+        
+        {% if score %}
+            <div class="alert alert-warning shadow-sm mt-3">
+               <strong>Score:</strong> {{ score }}/10
+            </div>
+        {% endif %}
+
+        {% if ai_feedback %}
+            <div class="alert alert-info shadow-sm mt-3">
+                <strong>AI Feedback:</strong><br>
+                {{ ai_feedback|linebreaks }}
+            </div>
+        {% endif %}
+
+        <hr class="divider my-4">
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="question_text" value="{{ question }}">
+
+            <label class="form-label fw-semibold">Your Answer</label>
+
+            <textarea name="answer"
+                      class="form-control mb-4"
+                      rows="6"
+                      placeholder="Type your answer here..."
+                      required></textarea>
+
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+
+                <div class="status-box">
+                    <span id="recordingStatus" class="badge bg-secondary">
+                        Not Recording
+                    </span>
+                    <span id="recordingTimer" class="ms-3 text-muted">
+                        0 sec
+                    </span>
+                </div>
+
+                <div class="d-flex gap-3">
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-custom"
+                            onclick="stopSpeaking(); startListening()">
+                        🎤 Start Speaking
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-danger btn-custom"
+                            onclick="stopSpeaking(); stopListening()">
+                        ⏹ Stop
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="d-grid gap-3">
+                <button type="submit"
+                        class="btn btn-primary btn-lg btn-custom"
+                        onclick="stopSpeaking();">
+                    Submit Answer
+                </button>
+
+                <button type="submit"
+                        name="end_interview"
+                        value="true"
+                        class="btn btn-danger btn-custom"
+                        onclick="stopSpeaking();">
+                    End Interview Now
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- 🔽 ALL YOUR JS REMAINS EXACTLY SAME BELOW -->
+<!-- (No changes made to functionality) -->
+
+<script>
+    let recognition;
+    let isListening = false;
+    let finalTranscript = "";
+    let startTime;
+    let timerInterval;
+
+    const textarea = document.querySelector("textarea[name='answer']");
+    const statusBadge = document.getElementById("recordingStatus");
+    const timerDisplay = document.getElementById("recordingTimer");
+
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US";
+
+        recognition.onresult = function(event) {
+            let interimTranscript = "";
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                let transcript = event.results[i][0].transcript;
+
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + " ";
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            textarea.value = finalTranscript + interimTranscript;
+        };
+
+        recognition.onerror = function(event) {
+            console.error(event.error);
+        };
+
+        recognition.onend = function() {
+            isListening = false;
+            stopTimer();
+            statusBadge.innerText = "Not Recording";
+            statusBadge.className = "badge bg-secondary";
+        };
+
+    } else {
+        alert("Speech Recognition not supported in this browser. Use Chrome.");
+    }
+
+    function startListening() {
+        if (recognition && !isListening) {
+            recognition.start();
+            isListening = true;
+
+            statusBadge.innerText = "Recording...";
+            statusBadge.className = "badge bg-danger";
+
+            startTimer();
+        }
+    }
+
+    function stopListening() {
+        if (recognition && isListening) {
+            recognition.stop();
+        }
+    }
+
+    function startTimer() {
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+            let seconds = Math.floor((Date.now() - startTime) / 1000);
+            timerDisplay.innerText = seconds + " sec";
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerDisplay.innerText = "0 sec";
+    }
+</script>
+
+<script>
+    function speakQuestion(text) {
+        if (!text) return;
+
+        window.speechSynthesis.cancel();
+
+        const speech = new SpeechSynthesisUtterance(text);
+        speech.lang = "en-US";
+        speech.rate = 1;
+        speech.pitch = 1;
+
+        window.speechSynthesis.speak(speech);
+    }
+
+    // Speak automatically when page loads
+    window.onload = function () {
+        const questionText = "{{ question|escapejs }}";
+        setTimeout(function () {
+            speakQuestion(questionText);
+        }, 300);
+    };
+</script>
+
+<script>
+    function stopSpeaking() {
+        window.speechSynthesis.cancel();
+    }
+</script>
+
+<script>
+    window.addEventListener("beforeunload", function () {
+        speechSynthesis.cancel();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #4e73df, #1cc88a);
+            min-height: 100vh;
+        }
+
+        .dashboard-card {
+            border-radius: 20px;
+            border: none;
+        }
+
+        .stat-card {
+            border-radius: 15px;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .main-container {
+            max-width: 1100px;
+        }
+
+        h2 {
+            font-weight: 700;
+        }
+
+        .btn-custom {
+            border-radius: 10px;
+            padding: 8px 20px;
+            font-weight: 500;
+        }
+
+        canvas {
+            max-height: 350px;
+        }
+    </style>
+</head>
+
+<body class="d-flex align-items-start justify-content-center py-5">
+
+<div class="container main-container">
+
+    <div class="card shadow-lg p-5 dashboard-card bg-white">
+
+        <h2 class="text-center text-primary mb-5">📊 Performance Dashboard</h2>
+
+        <div class="row mb-5 g-4">
+
+            <div class="col-md-6">
+                <div class="card p-4 shadow-sm text-center stat-card">
+                    <h6 class="text-muted">Total Interviews</h6>
+                    <h2 class="fw-bold text-dark">{{ total_interviews }}</h2>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-4 shadow-sm text-center stat-card">
+                    <h6 class="text-muted">Overall Average Score</h6>
+                    <h2 class="fw-bold text-success">{{ average_score }}/10</h2>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="card p-4 shadow-sm dashboard-card">
+            <h5 class="mb-4 text-secondary">📈 Score Trend</h5>
+            <canvas id="scoreChart"></canvas>
+        </div>
+
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-primary btn-custom">
+                ⬅ Back to Home
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const sessionScores = JSON.parse('{{ session_scores|escapejs }}');
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sessionScores.map((_, index) => "Session " + (index + 1)),
+            datasets: [{
+                label: 'Session Average Score',
+                data: sessionScores,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    min: 0,
+                    max: 10
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
